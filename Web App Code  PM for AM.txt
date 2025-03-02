@@ -1,0 +1,126 @@
+import React, { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { format, addWeeks, isPast, isWithinInterval } from "date-fns";
+
+const phases = [
+  "Start",
+  "In Process",
+  "Pause for Dependency",
+  "Review",
+  "Test",
+  "Complete",
+  "Follow Up"
+];
+
+const projectPhases = ["Initiation", "Planning", "Design", "Execution", "Close"];
+
+export default function ProjectManager() {
+  const [projects, setProjects] = useState([
+    {
+      name: "Project A",
+      phase: "Start",
+      startDate: new Date(),
+      targetEndDate: addWeeks(new Date(), 4),
+      phaseDetails: projectPhases.reduce((acc, phase) => {
+        acc[phase] = {
+          start: new Date(),
+          end: addWeeks(new Date(), 1),
+          notes: "",
+          steps: [],
+          expanded: false
+        };
+        return acc;
+      }, {}),
+      teamMembers: ""
+    }
+  ]);
+
+  const addStep = (index, phase) => {
+    setProjects((prev) => {
+      const updated = [...prev];
+      updated[index].phaseDetails[phase].steps.push({ name: "New Step", status: "Not Started", dependent: false });
+      return updated;
+    });
+  };
+
+  return (
+    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+      {projects.map((project, index) => (
+        <Card key={index} className="p-4">
+          <CardContent>
+            <Input className="text-xl font-bold" value={project.name} onChange={(e) => {
+              setProjects((prev) => {
+                const updated = [...prev];
+                updated[index].name = e.target.value;
+                return updated;
+              });
+            }} />
+            <p>Team Members: <Input type="text" value={project.teamMembers} onChange={(e) => {
+              setProjects((prev) => {
+                const updated = [...prev];
+                updated[index].teamMembers = e.target.value;
+                return updated;
+              });
+            }} /></p>
+            {projectPhases.map((phase) => (
+              <div key={phase}>
+                <button className="font-medium" onClick={() => {
+                  setProjects((prev) => {
+                    const updated = [...prev];
+                    updated[index].phaseDetails[phase].expanded = !updated[index].phaseDetails[phase].expanded;
+                    return updated;
+                  });
+                }}>
+                  {phase} {project.phaseDetails[phase].expanded ? "▼" : "▶"}
+                </button>
+                {project.phaseDetails[phase].expanded && (
+                  <div className="ml-4">
+                    {project.phaseDetails[phase].steps.map((step, stepIndex) => (
+                      <div key={stepIndex} className="flex justify-between items-center">
+                        <Input value={step.name} onChange={(e) => {
+                          setProjects((prev) => {
+                            const updated = [...prev];
+                            updated[index].phaseDetails[phase].steps[stepIndex].name = e.target.value;
+                            return updated;
+                          });
+                        }} />
+                        <Select value={step.status} onValueChange={(val) => {
+                          setProjects((prev) => {
+                            const updated = [...prev];
+                            updated[index].phaseDetails[phase].steps[stepIndex].status = val;
+                            return updated;
+                          });
+                        }}>
+                          <SelectTrigger>{step.status}</SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Not Started">Not Started</SelectItem>
+                            <SelectItem value="In Progress">In Progress</SelectItem>
+                            <SelectItem value="Completed">Completed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Checkbox checked={step.dependent} onCheckedChange={(val) => {
+                          setProjects((prev) => {
+                            const updated = [...prev];
+                            updated[index].phaseDetails[phase].steps[stepIndex].dependent = val;
+                            return updated;
+                          });
+                        }} />
+                      </div>
+                    ))}
+                    <Button onClick={() => addStep(index, phase)}>+ Add Step</Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
